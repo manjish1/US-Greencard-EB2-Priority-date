@@ -35,11 +35,6 @@ source venv/bin/activate   # Windows: venv\Scripts\activate
 pip install flask requests beautifulsoup4 pandas
 ```
 
-Alternatively, use a `requirements.txt`:
-
-```bash
-pip install -r requirements.txt
-```
 
 ### 4. Run the App
 
@@ -60,7 +55,6 @@ eb2-visa-bulletin-tracker/
 ├── templates/
 │   └── index.html          # Web form and result table
 ├── README.md               # Project overview (this file)
-└── requirements.txt        # (optional) Python dependencies
 ```
 
 ---
@@ -68,6 +62,8 @@ eb2-visa-bulletin-tracker/
 ## 📝 Example Use Case
 
 You want to track how the EB2 India final action dates moved from **January 2022 to December 2023** — simply input those dates and the app will display the results in a clean table by month.
+
+Input the dates as 01 2022 and 12 2023 in respective input boxes.
 
 ---
 
