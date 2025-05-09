@@ -1,10 +1,28 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>EB2 India Visa Bulletin Tracker</title>
+    <title>EB2 India Priority Dates</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        table {
+            border-collapse: collapse;
+            width: 60%;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        input {
+            margin: 5px;
+        }
+    </style>
 </head>
 <body>
-    <h2>Check EB2 India Priority Dates</h2>
+    <h1>EB2 India Priority Dates Viewer</h1>
     <form method="post">
         <label>Start Month:</label>
         <input type="number" name="start_month" min="1" max="12" required>
@@ -20,19 +38,19 @@
     </form>
 
     {% if results %}
-    <h3>Results</h3>
-    <table border="1">
-        <tr>
-            <th>Visa Bulletin Date</th>
-            <th>EB2 India Priority Date</th>
-        </tr>
-        {% for row in results %}
-        <tr>
-            <td>{{ row['Visa Bulletin Date'] }}</td>
-            <td>{{ row['EB2 India Priority Date'] }}</td>
-        </tr>
-        {% endfor %}
-    </table>
+        <h2>Results</h2>
+        <table>
+            <tr>
+                <th>Bulletin Date</th>
+                <th>EB2 Priority Date</th>
+            </tr>
+            {% for item in results %}
+            <tr>
+                <td>{{ item.bulletin_date }}</td>
+                <td>{{ item.eb2_date }}</td>
+            </tr>
+            {% endfor %}
+        </table>
     {% endif %}
 </body>
 </html>
