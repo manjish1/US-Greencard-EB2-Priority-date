@@ -1,47 +1,48 @@
 from flask import Flask, render_template, request
 import requests
 from bs4 import BeautifulSoup
-import pandas as pd
 from datetime import datetime
 import calendar
 
 app = Flask(__name__)
 
-def fetch_visa_bulletin_dates(start_date, end_date):
+def fetch_eb2_india_dates(start_month, start_year, end_month, end_year):
     results = []
+    start_date = datetime(int(start_year), int(start_month), 1)
+    end_date = datetime(int(end_year), int(end_month), 1)
 
     current = start_date
     while current <= end_date:
-        url = f"https://travel.state.gov/content/travel/en/legal/visa-law0/visa-bulletin/{current.year}/visa-bulletin-for-{calendar.month_name[current.month].lower()}-{current.year}.html"
+        month_name = calendar.month_name[current.month].lower()
+        url = f"https://travel.state.gov/content/travel/en/legal/visa-law0/visa-bulletin/{current.year}/visa-bulletin-for-{month_name}-{current.year}.html"
         print(f"Fetching: {url}")
-        resp = requests.get(url)
-        if resp.status_code != 200:
-            current = add_months(current, 1)
-            continue
-
-        soup = BeautifulSoup(resp.text, "html.parser")
-        tables = soup.find_all("table")
-
-        found = False
-        for table in tables:
-            if "Employment" in table.text or "Employment-based" in table.text:
-                df = pd.read_html(str(table))[0]
-                for idx, row in df.iterrows():
-                    if "India" in str(row).lower() and "eb2" in str(row).lower():
-                        try:
-                            eb2_date = row[["India", "2nd"]].dropna().values[0]
-                        except:
-                            continue
+        try:
+            resp = requests.get(url, timeout=10)
+            if resp.status_code != 200:
+                current = add_months(current, 1)
+                continue
+            soup = BeautifulSoup(resp.text, "html.parser")
+            tables = soup.find_all("table")
+            for table in tables:
+                rows = table.find_all("tr")
+                for row in rows:
+                    cells = [td.get_text(strip=True) for td in row.find_all(["td", "th"])]
+                    if len(cells) < 4:
+                        continue
+                    if "2nd" in cells[0].lower() or "eb2" in cells[0].lower():
+                        eb2_date = cells[3]
                         results.append({
-                            "Visa Bulletin Date": current.strftime("%B %Y"),
-                            "EB2 India Priority Date": eb2_date
+                            "bulletin_date": current.strftime("%B %Y"),
+                            "eb2_date": eb2_date
                         })
-                        found = True
                         break
-            if found:
-                break
+                if results and results[-1]["bulletin_date"] == current.strftime("%B %Y"):
+                    break
+        except Exception as e:
+            print(f"Error fetching {url}: {e}")
         current = add_months(current, 1)
 
+    print("Scraped Results:", results)
     return results
 
 def add_months(date_obj, months):
@@ -53,13 +54,11 @@ def add_months(date_obj, months):
 def index():
     results = []
     if request.method == "POST":
-        start_month = int(request.form["start_month"])
-        start_year = int(request.form["start_year"])
-        end_month = int(request.form["end_month"])
-        end_year = int(request.form["end_year"])
-        start_date = datetime(start_year, start_month, 1)
-        end_date = datetime(end_year, end_month, 1)
-        results = fetch_visa_bulletin_dates(start_date, end_date)
+        start_month = request.form.get("start_month")
+        start_year = request.form.get("start_year")
+        end_month = request.form.get("end_month")
+        end_year = request.form.get("end_year")
+        results = fetch_eb2_india_dates(start_month, start_year, end_month, end_year)
     return render_template("index.html", results=results)
 
 if __name__ == "__main__":
