@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>EB2 India Visa Bulletin Tracker</title>
+</head>
+<body>
+    <h2>Check EB2 India Priority Dates</h2>
+    <form method="post">
+        <label>Start Month:</label>
+        <input type="number" name="start_month" min="1" max="12" required>
+        <label>Start Year:</label>
+        <input type="number" name="start_year" required>
+        <br><br>
+        <label>End Month:</label>
+        <input type="number" name="end_month" min="1" max="12" required>
+        <label>End Year:</label>
+        <input type="number" name="end_year" required>
+        <br><br>
+        <input type="submit" value="Fetch Dates">
+    </form>
+
+    {% if results %}
+    <h3>Results</h3>
+    <table border="1">
+        <tr>
+            <th>Visa Bulletin Date</th>
+            <th>EB2 India Priority Date</th>
+        </tr>
+        {% for row in results %}
+        <tr>
+            <td>{{ row['Visa Bulletin Date'] }}</td>
+            <td>{{ row['EB2 India Priority Date'] }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% endif %}
+</body>
+</html>
