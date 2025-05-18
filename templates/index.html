@@ -18,10 +18,10 @@
             background: #fff;
             box-shadow: 0 4px 24px 0 rgba(44, 62, 80, 0.10);
             border-radius: 18px;
-            padding: 2.5rem 2.5rem 2rem 2.5rem;
-            margin-top: 3rem;
+            padding: 1.5rem 1.2rem 1.2rem 1.2rem;
+            margin-top: 2rem;
             width: 100%;
-            max-width: 480px;
+            max-width: 420px;
             border: 1px solid #e3e8ee;
         }
         h1 {
@@ -35,19 +35,21 @@
         form {
             display: flex;
             flex-direction: column;
-            gap: 1.5rem;
+            gap: 0.7rem;
         }
         .form-section {
             display: flex;
-            gap: 1.2rem;
+            gap: 0.7rem;
             flex-wrap: wrap;
             justify-content: space-between;
+            margin-bottom: 0.5rem;
         }
         .form-group {
             display: flex;
             flex-direction: column;
             flex: 1 1 45%;
             min-width: 120px;
+            margin-bottom: 0.2rem;
         }
         label {
             font-size: 1rem;
@@ -55,7 +57,7 @@
             margin-bottom: 0.4rem;
             font-weight: 500;
         }
-        input[type="number"] {
+        select {
             padding: 0.55rem 0.9rem;
             border-radius: 8px;
             border: 1.2px solid #bfc9d1;
@@ -63,8 +65,13 @@
             font-size: 1rem;
             transition: border 0.2s, box-shadow 0.2s;
             outline: none;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            color: #22304a;
+            box-shadow: 0 1px 2px rgba(44, 62, 80, 0.03);
         }
-        input[type="number"]:focus {
+        select:focus {
             border: 1.2px solid #3b82f6;
             box-shadow: 0 0 0 2px #3b82f622;
         }
@@ -87,14 +94,14 @@
             transform: translateY(-1px) scale(1.02);
         }
         .results-card {
-            margin-top: 2.5rem;
-            padding: 2rem 2.5rem;
+            margin-top: 1.5rem;
+            padding: 1.2rem 1.2rem;
             border-radius: 18px;
             background: #fff;
             box-shadow: 0 4px 24px 0 rgba(44, 62, 80, 0.08);
             border: 1px solid #e3e8ee;
             width: 100%;
-            max-width: 700px;
+            max-width: 600px;
         }
         h2 {
             text-align: center;
@@ -135,15 +142,15 @@
         }
         @media (max-width: 700px) {
             .card, .results-card {
-                padding: 1.2rem 0.5rem;
-                max-width: 98vw;
+                padding: 0.7rem 0.2rem;
+                max-width: 99vw;
             }
             table, th, td {
-                font-size: 0.98rem;
-                padding: 0.7rem 0.5rem;
+                font-size: 0.97rem;
+                padding: 0.6rem 0.3rem;
             }
             h1 {
-                font-size: 1.2rem;
+                font-size: 1.1rem;
             }
         }
     </style>
@@ -155,21 +162,55 @@
             <div class="form-section">
                 <div class="form-group">
                     <label for="start_month">Start Month:</label>
-                    <input type="number" id="start_month" name="start_month" min="1" max="12" required>
+                    <select id="start_month" name="start_month" required>
+                        <option value="1">January</option>
+                        <option value="2">February</option>
+                        <option value="3">March</option>
+                        <option value="4">April</option>
+                        <option value="5">May</option>
+                        <option value="6">June</option>
+                        <option value="7">July</option>
+                        <option value="8">August</option>
+                        <option value="9">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label for="start_year">Start Year:</label>
-                    <input type="number" id="start_year" name="start_year" required>
+                    <select id="start_year" name="start_year" required>
+                        {% for y in range(1995, current_year+1) %}
+                        <option value="{{ y }}">{{ y }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
             </div>
             <div class="form-section">
                 <div class="form-group">
                     <label for="end_month">End Month:</label>
-                    <input type="number" id="end_month" name="end_month" min="1" max="12" required>
+                    <select id="end_month" name="end_month" required>
+                        <option value="1">January</option>
+                        <option value="2">February</option>
+                        <option value="3">March</option>
+                        <option value="4">April</option>
+                        <option value="5">May</option>
+                        <option value="6">June</option>
+                        <option value="7">July</option>
+                        <option value="8">August</option>
+                        <option value="9">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label for="end_year">End Year:</label>
-                    <input type="number" id="end_year" name="end_year" required>
+                    <select id="end_year" name="end_year" required>
+                        {% for y in range(1995, current_year+1) %}
+                        <option value="{{ y }}">{{ y }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
             </div>
             <input type="submit" value="Fetch Dates">
