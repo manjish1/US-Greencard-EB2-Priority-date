@@ -83,6 +83,13 @@
         if (month === undefined) return null;
         return new Date(year, month, day);
     }
+    function getQueryParams() {
+        const params = {};
+        window.location.search.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(str, key, value) {
+            params[key] = decodeURIComponent(value);
+        });
+        return params;
+    }
     // --- Populate form selects ---
     function populateSelects() {
         const startMonth = document.getElementById('start_month');
@@ -117,6 +124,12 @@
         startYear.value = start.getFullYear();
         endMonth.value = now.getMonth() + 1;
         endYear.value = now.getFullYear();
+        // Override with query params if present
+        const params = getQueryParams();
+        if (params.start_month) startMonth.value = params.start_month;
+        if (params.start_year) startYear.value = params.start_year;
+        if (params.end_month) endMonth.value = params.end_month;
+        if (params.end_year) endYear.value = params.end_year;
     }
     // --- Fetch and render results ---
     async function fetchResults(startMonth, startYear, endMonth, endYear) {
@@ -291,6 +304,14 @@
             const startYear = +document.getElementById('start_year').value;
             const endMonth = +document.getElementById('end_month').value;
             const endYear = +document.getElementById('end_year').value;
+            // Update URL query params
+            const params = new URLSearchParams({
+                start_month: startMonth,
+                start_year: startYear,
+                end_month: endMonth,
+                end_year: endYear
+            });
+            history.replaceState(null, '', '?' + params.toString());
             const results = await fetchResults(startMonth, startYear, endMonth, endYear);
             renderResults(results);
         });
