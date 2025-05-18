@@ -183,18 +183,9 @@
                     <label for="start_month">Start Month:</label>
                     <div class="select-wrapper">
                         <select id="start_month" name="start_month" required>
-                            <option value="1">January</option>
-                            <option value="2">February</option>
-                            <option value="3">March</option>
-                            <option value="4">April</option>
-                            <option value="5">May</option>
-                            <option value="6">June</option>
-                            <option value="7">July</option>
-                            <option value="8">August</option>
-                            <option value="9">September</option>
-                            <option value="10">October</option>
-                            <option value="11">November</option>
-                            <option value="12">December</option>
+                            {% for m in range(1, 13) %}
+                            <option value="{{ m }}" {% if m == start_month %}selected{% endif %}>{{ ["January","February","March","April","May","June","July","August","September","October","November","December"][m-1] }}</option>
+                            {% endfor %}
                         </select>
                     </div>
                 </div>
@@ -203,7 +194,7 @@
                     <div class="select-wrapper">
                         <select id="start_year" name="start_year" required>
                             {% for y in range(current_year, 1994, -1) %}
-                            <option value="{{ y }}">{{ y }}</option>
+                            <option value="{{ y }}" {% if y == start_year %}selected{% endif %}>{{ y }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -214,18 +205,9 @@
                     <label for="end_month">End Month:</label>
                     <div class="select-wrapper">
                         <select id="end_month" name="end_month" required>
-                            <option value="1">January</option>
-                            <option value="2">February</option>
-                            <option value="3">March</option>
-                            <option value="4">April</option>
-                            <option value="5">May</option>
-                            <option value="6">June</option>
-                            <option value="7">July</option>
-                            <option value="8">August</option>
-                            <option value="9">September</option>
-                            <option value="10">October</option>
-                            <option value="11">November</option>
-                            <option value="12">December</option>
+                            {% for m in range(1, 13) %}
+                            <option value="{{ m }}" {% if m == end_month %}selected{% endif %}>{{ ["January","February","March","April","May","June","July","August","September","October","November","December"][m-1] }}</option>
+                            {% endfor %}
                         </select>
                     </div>
                 </div>
@@ -234,7 +216,7 @@
                     <div class="select-wrapper">
                         <select id="end_year" name="end_year" required>
                             {% for y in range(current_year, 1994, -1) %}
-                            <option value="{{ y }}">{{ y }}</option>
+                            <option value="{{ y }}" {% if y == end_year %}selected{% endif %}>{{ y }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -259,7 +241,108 @@
             </tr>
             {% endfor %}
         </table>
+        <div style="margin-top:2.5rem;">
+            <canvas id="eb2Chart" height="300"></canvas>
+        </div>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <script>
+        function parsePriorityDate(dateStr) {
+            // Try to parse formats like 01JAN20, 01JAN2020, DDMMMYY, DDMMMYYYY, 'C', 'U', etc.
+            if (!dateStr || dateStr === 'C' || dateStr === 'U' || dateStr === 'Unavailable') return null;
+            let m = dateStr.match(/(\d{2})([A-Z]{3})(\d{2,4})/);
+            if (!m) return null;
+            let day = parseInt(m[1], 10);
+            let monthStr = m[2];
+            let year = parseInt(m[3], 10);
+            if (year < 100) year += 2000;
+            const months = {JAN:0, FEB:1, MAR:2, APR:3, MAY:4, JUN:5, JUL:6, AUG:7, SEP:8, OCT:9, NOV:10, DEC:11};
+            let month = months[monthStr];
+            if (month === undefined) return null;
+            return new Date(year, month, day);
+        }
+        // Pass results as JSON for safe JS parsing
+        const results = JSON.parse('{{ results|tojson|safe }}');
+        console.log('Chart data:', results);
+        const dataPoints = results.map(r => {
+            let y = parsePriorityDate(r.eb2_date);
+            let x = r.bulletin_date;
+            return (y ? {x, y: y.getTime()} : null);
+        }).filter(Boolean);
+        // Calculate y-axis min and max
+        const yValues = dataPoints.map(pt => pt.y);
+        const yMin = Math.min(...yValues);
+        const yMax = Math.max(...yValues);
+        const ctx = document.getElementById('eb2Chart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                datasets: [{
+                    label: 'EB2 India Priority Date',
+                    data: dataPoints,
+                    borderColor: '#2563eb',
+                    backgroundColor: 'rgba(37,99,235,0.08)',
+                    pointBackgroundColor: '#2563eb',
+                    pointRadius: 4,
+                    fill: true,
+                    tension: 0.2,
+                    parsing: {xAxisKey: 'x', yAxisKey: 'y'},
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let d = new Date(context.parsed.y);
+                                return d.toLocaleDateString('en-US', {year:'numeric', month:'short', day:'2-digit'});
+                            }
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: 'EB2 India Priority Date Progression',
+                        font: { size: 18 }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Bulletin Date' },
+                        type: 'category',
+                        ticks: {
+                            callback: function(value, index, ticks) {
+                                // Show 3-char month and 2-digit year (e.g., 'Jan 20')
+                                const label = this.getLabelForValue(value);
+                                if (label) {
+                                    const [month, year] = label.split(' ');
+                                    return month.slice(0,3) + ' ' + year.slice(-2);
+                                }
+                                return value;
+                            },
+                            font: { size: 10 }
+                        }
+                    },
+                    y: {
+                        title: { display: true, text: 'Priority Date' },
+                        type: 'time',
+                        time: { unit: 'month', tooltipFormat: 'MMM yyyy' },
+                        min: yMin,
+                        max: yMax,
+                        ticks: {
+                            callback: function(value) {
+                                let d = new Date(value);
+                                return d.toLocaleDateString('en-US', {year:'2-digit', month:'short'});
+                            },
+                            font: { size: 10 }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
     {% endif %}
 </body>
 </html>
