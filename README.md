@@ -49,6 +49,30 @@ Then open `http://localhost:5000` in your browser.
 
 ---
 
+## 🚀 Local Development (Static Site)
+
+To preview the static site locally:
+
+1. **Update the data:**
+   ```bash
+   ./update_bulletin_cache.sh
+   ```
+   This will generate/update the JSON files in `site/bulletins/`.
+
+2. **Serve the site locally:**
+   ```bash
+   cd site
+   python3 -m http.server 8000
+   ```
+   This will start a local server at [http://localhost:8000](http://localhost:8000).
+
+3. **Open your browser:**
+   Go to [http://localhost:8000](http://localhost:8000) to view the static site.
+
+You can now test all features locally before pushing changes to GitHub.
+
+---
+
 ## 🗂️ Project Structure
 
 ```
