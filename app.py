@@ -17,7 +17,7 @@ def fetch_eb2_india_dates(start_month, start_year, end_month, end_year):
         url = f"https://travel.state.gov/content/travel/en/legal/visa-law0/visa-bulletin/{current.year}/visa-bulletin-for-{month_name}-{current.year}.html"
         print(f"Fetching: {url}")
         try:
-            resp = requests.get(url, timeout=10)
+            resp = requests.get(url, timeout=10, verify=False)
             if resp.status_code != 200:
                 current = add_months(current, 1)
                 continue
