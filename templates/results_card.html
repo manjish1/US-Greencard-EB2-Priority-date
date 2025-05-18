@@ -1,0 +1,11 @@
+{% if results %}
+<div class="results-card">
+    <h2>Results</h2>
+    <div class="results-flex">
+        {% include 'results_chart.html' %}
+        <div class="table-container">
+            {% include 'results_table.html' %}
+        </div>
+    </div>
+</div>
+{% endif %} 
