@@ -1,43 +1,183 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <title>EB2 India Priority Dates</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
+        body {
+            min-height: 100vh;
+            margin: 0;
+            font-family: 'Segoe UI', 'Arial', sans-serif;
+            background: linear-gradient(120deg, #e9ecef 0%, #f8fafc 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+        }
+        .card {
+            background: #fff;
+            box-shadow: 0 4px 24px 0 rgba(44, 62, 80, 0.10);
+            border-radius: 18px;
+            padding: 2.5rem 2.5rem 2rem 2.5rem;
+            margin-top: 3rem;
+            width: 100%;
+            max-width: 480px;
+            border: 1px solid #e3e8ee;
+        }
+        h1 {
+            font-size: 2.1rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: #22304a;
+            margin-bottom: 1.2rem;
+            text-align: center;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .form-section {
+            display: flex;
+            gap: 1.2rem;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            flex: 1 1 45%;
+            min-width: 120px;
+        }
+        label {
+            font-size: 1rem;
+            color: #4a5a6a;
+            margin-bottom: 0.4rem;
+            font-weight: 500;
+        }
+        input[type="number"] {
+            padding: 0.55rem 0.9rem;
+            border-radius: 8px;
+            border: 1.2px solid #bfc9d1;
+            background: #f7fafd;
+            font-size: 1rem;
+            transition: border 0.2s, box-shadow 0.2s;
+            outline: none;
+        }
+        input[type="number"]:focus {
+            border: 1.2px solid #3b82f6;
+            box-shadow: 0 0 0 2px #3b82f622;
+        }
+        input[type="submit"] {
+            margin-top: 0.5rem;
+            padding: 0.8rem 2.2rem;
+            border-radius: 10px;
+            border: none;
+            background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%);
+            color: #fff;
+            font-size: 1.08rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(44, 62, 80, 0.08);
+            transition: background 0.2s, transform 0.1s;
+        }
+        input[type="submit"]:hover {
+            background: linear-gradient(90deg, #2563eb 0%, #60a5fa 100%);
+            transform: translateY(-1px) scale(1.02);
+        }
+        .results-card {
+            margin-top: 2.5rem;
+            padding: 2rem 2.5rem;
+            border-radius: 18px;
+            background: #fff;
+            box-shadow: 0 4px 24px 0 rgba(44, 62, 80, 0.08);
+            border: 1px solid #e3e8ee;
+            width: 100%;
+            max-width: 700px;
+        }
+        h2 {
+            text-align: center;
+            color: #2563eb;
+            font-size: 1.35rem;
+            margin-bottom: 1.2rem;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+        }
         table {
-            border-collapse: collapse;
-            width: 60%;
-            margin-top: 20px;
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 1rem;
+            background: #f7fafd;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 1px 6px rgba(44, 62, 80, 0.04);
         }
         th, td {
-            border: 1px solid #ccc;
-            padding: 8px;
+            padding: 0.85rem 1.1rem;
+            text-align: left;
         }
         th {
-            background-color: #f2f2f2;
+            background: #e3e8ee;
+            color: #22304a;
+            font-size: 1.05rem;
+            font-weight: 700;
+            border-bottom: 2px solid #d1dbe6;
         }
-        input {
-            margin: 5px;
+        td {
+            color: #3a4a5a;
+            font-size: 1.01rem;
+            border-bottom: 1px solid #e3e8ee;
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+        @media (max-width: 700px) {
+            .card, .results-card {
+                padding: 1.2rem 0.5rem;
+                max-width: 98vw;
+            }
+            table, th, td {
+                font-size: 0.98rem;
+                padding: 0.7rem 0.5rem;
+            }
+            h1 {
+                font-size: 1.2rem;
+            }
         }
     </style>
 </head>
 <body>
-    <h1>EB2 India Priority Dates Viewer</h1>
-    <form method="get">
-        <label>Start Month:</label>
-        <input type="number" name="start_month" min="1" max="12" required>
-        <label>Start Year:</label>
-        <input type="number" name="start_year" required>
-        <br><br>
-        <label>End Month:</label>
-        <input type="number" name="end_month" min="1" max="12" required>
-        <label>End Year:</label>
-        <input type="number" name="end_year" required>
-        <br><br>
-        <input type="submit" value="Fetch Dates">
-    </form>
+    <div class="card">
+        <h1>EB2 India Priority Dates Viewer</h1>
+        <form method="get">
+            <div class="form-section">
+                <div class="form-group">
+                    <label for="start_month">Start Month:</label>
+                    <input type="number" id="start_month" name="start_month" min="1" max="12" required>
+                </div>
+                <div class="form-group">
+                    <label for="start_year">Start Year:</label>
+                    <input type="number" id="start_year" name="start_year" required>
+                </div>
+            </div>
+            <div class="form-section">
+                <div class="form-group">
+                    <label for="end_month">End Month:</label>
+                    <input type="number" id="end_month" name="end_month" min="1" max="12" required>
+                </div>
+                <div class="form-group">
+                    <label for="end_year">End Year:</label>
+                    <input type="number" id="end_year" name="end_year" required>
+                </div>
+            </div>
+            <input type="submit" value="Fetch Dates">
+        </form>
+    </div>
 
     {% if results %}
+    <div class="results-card">
         <h2>Results</h2>
         <table>
             <tr>
@@ -51,6 +191,7 @@
             </tr>
             {% endfor %}
         </table>
+    </div>
     {% endif %}
 </body>
 </html>
