@@ -100,6 +100,8 @@ def fetch_eb2_india_dates(start_month, start_year, end_month, end_year, output_d
     Returns a list of dicts with 'bulletin_date' and 'eb2_date'.
     If output_dir is provided and is a directory, skips months that already have a cache file.
     """
+    if output_dir is None:
+        output_dir = os.path.join('site', 'bulletins')
     results = []
     start_date = datetime(int(start_year), int(start_month), 1)
     end_date = datetime(int(end_year), int(end_month), 1)

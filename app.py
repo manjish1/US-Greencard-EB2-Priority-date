@@ -8,13 +8,13 @@ import glob
 app = Flask(__name__)
 
 # Load bulletin cache at startup
-CACHE_DIR = "bulletin_cache"
-bulletin_cache = []
+CACHE_DIR = "bulletins"
+bulletins = []
 if os.path.isdir(CACHE_DIR):
     for fname in glob.glob(os.path.join(CACHE_DIR, "*.json")):
         with open(fname, "r") as f:
             try:
-                bulletin_cache.append(json.load(f))
+                bulletins.append(json.load(f))
             except Exception as e:
                 print(f"Error loading {fname}: {e}")
 
@@ -34,13 +34,13 @@ def index():
     end_year = request.args.get("end_year", str(default_end_year))
 
     # Use cache for the requested range
-    if bulletin_cache:
+    if bulletins:
         def parse_bulletin_date_str(s):
             return datetime.strptime(s, "%B %Y")
         start_dt = datetime(int(start_year), int(start_month), 1)
         end_dt = datetime(int(end_year), int(end_month), 1)
         # Filter and sort
-        filtered = [r for r in bulletin_cache if start_dt <= parse_bulletin_date_str(r["bulletin_date"]) <= end_dt]
+        filtered = [r for r in bulletins if start_dt <= parse_bulletin_date_str(r["bulletin_date"]) <= end_dt]
         filtered.sort(key=lambda r: parse_bulletin_date_str(r["bulletin_date"]))
         results = filtered
     else:

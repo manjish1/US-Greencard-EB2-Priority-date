@@ -1,5 +1,6 @@
-venv
+# Byte-compiled / optimized / DLL files
+__pycache__/
+venv/
+/site/bulletins/*.json
 .idea
-__pycache__
-bulletin_cache/*.json
 

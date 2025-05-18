@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EB2 India Priority Dates Viewer</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/modern-normalize/2.0.0/modern-normalize.min.css">
+    <style>
+        body { font-family: system-ui, sans-serif; background: #f6f8fa; margin: 0; padding: 0; }
+        .card { background: #fff; max-width: 700px; margin: 2rem auto; padding: 2rem; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+        h1, h2 { color: #2563eb; }
+        .form-section { display: flex; gap: 2rem; margin-bottom: 1rem; }
+        .form-group { display: flex; flex-direction: column; }
+        .select-wrapper select { padding: 0.3rem; border-radius: 4px; border: 1px solid #ccc; }
+        input[type="submit"] { background: #2563eb; color: #fff; border: none; padding: 0.7rem 1.5rem; border-radius: 5px; cursor: pointer; font-size: 1rem; }
+        .results-card { background: #f1f5fb; border-radius: 8px; padding: 1.5rem; margin-top: 2rem; }
+        .results-flex { display: flex; gap: 2rem; flex-wrap: wrap; }
+        .chart-container { min-width: 350px; flex: 2; }
+        .table-container { flex: 1; min-width: 220px; }
+        table { border-collapse: collapse; width: 100%; background: #fff; }
+        th, td { border: 1px solid #e5e7eb; padding: 0.5rem 0.7rem; text-align: left; }
+        th { background: #2563eb; color: #fff; }
+        @media (max-width: 700px) {
+            .results-flex { flex-direction: column; }
+            .chart-container, .table-container { min-width: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>EB2 India Priority Dates Viewer</h1>
+        <form id="dateForm">
+            <div class="form-section">
+                <div class="form-group">
+                    <label for="start_month">Start Month:</label>
+                    <div class="select-wrapper">
+                        <select id="start_month" name="start_month" required></select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="start_year">Start Year:</label>
+                    <div class="select-wrapper">
+                        <select id="start_year" name="start_year" required></select>
+                    </div>
+                </div>
+            </div>
+            <div class="form-section">
+                <div class="form-group">
+                    <label for="end_month">End Month:</label>
+                    <div class="select-wrapper">
+                        <select id="end_month" name="end_month" required></select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="end_year">End Year:</label>
+                    <div class="select-wrapper">
+                        <select id="end_year" name="end_year" required></select>
+                    </div>
+                </div>
+            </div>
+            <input type="submit" value="Fetch Dates">
+        </form>
+        <div id="results"></div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <script>
+    // --- Helper functions ---
+    const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+    function pad(n) { return n < 10 ? '0' + n : n; }
+    function getCurrentYear() { return new Date().getFullYear(); }
+    function getCurrentMonth() { return new Date().getMonth() + 1; }
+    function parsePriorityDate(dateStr) {
+        if (!dateStr || dateStr === 'C' || dateStr === 'U' || dateStr === 'Unavailable') return null;
+        let m = dateStr.match(/(\d{2})([A-Z]{3})(\d{2,4})/);
+        if (!m) return null;
+        let day = parseInt(m[1], 10);
+        let monthStr = m[2];
+        let year = parseInt(m[3], 10);
+        if (year < 100) year += 2000;
+        const months = {JAN:0, FEB:1, MAR:2, APR:3, MAY:4, JUN:5, JUL:6, AUG:7, SEP:8, OCT:9, NOV:10, DEC:11};
+        let month = months[monthStr];
+        if (month === undefined) return null;
+        return new Date(year, month, day);
+    }
+    // --- Populate form selects ---
+    function populateSelects() {
+        const startMonth = document.getElementById('start_month');
+        const endMonth = document.getElementById('end_month');
+        const startYear = document.getElementById('start_year');
+        const endYear = document.getElementById('end_year');
+        for (let m = 1; m <= 12; m++) {
+            let opt1 = document.createElement('option');
+            opt1.value = m;
+            opt1.textContent = monthNames[m-1];
+            startMonth.appendChild(opt1);
+            let opt2 = document.createElement('option');
+            opt2.value = m;
+            opt2.textContent = monthNames[m-1];
+            endMonth.appendChild(opt2);
+        }
+        let thisYear = getCurrentYear();
+        for (let y = thisYear; y >= 2001; y--) {
+            let opt1 = document.createElement('option');
+            opt1.value = y;
+            opt1.textContent = y;
+            startYear.appendChild(opt1);
+            let opt2 = document.createElement('option');
+            opt2.value = y;
+            opt2.textContent = y;
+            endYear.appendChild(opt2);
+        }
+        // Set defaults: start = 1 year ago, end = now
+        const now = new Date();
+        const start = new Date(now.getFullYear() - 1, now.getMonth(), 1);
+        startMonth.value = start.getMonth() + 1;
+        startYear.value = start.getFullYear();
+        endMonth.value = now.getMonth() + 1;
+        endYear.value = now.getFullYear();
+    }
+    // --- Fetch and render results ---
+    async function fetchResults(startMonth, startYear, endMonth, endYear) {
+        // Build list of bulletin months/years
+        let results = [];
+        let start = new Date(startYear, startMonth-1, 1);
+        let end = new Date(endYear, endMonth-1, 1);
+        let cur = new Date(start);
+        while (cur <= end) {
+            let y = cur.getFullYear();
+            let m = pad(cur.getMonth()+1);
+            let fname = `bulletins/${y}-${m}.json`;
+            try {
+                let resp = await fetch(fname);
+                if (resp.ok) {
+                    let data = await resp.json();
+                    results.push({
+                        bulletin_date: `${monthNames[cur.getMonth()]} ${y}`,
+                        eb2_date: data['eb2_date']
+                    });
+                }
+            } catch (e) {
+                // File may not exist, skip
+            }
+            cur.setMonth(cur.getMonth()+1);
+        }
+        return results;
+    }
+    function renderResults(results) {
+        const resultsDiv = document.getElementById('results');
+        resultsDiv.innerHTML = '';
+        if (!results.length) {
+            resultsDiv.innerHTML = '<p>No results found for the selected range.</p>';
+            return;
+        }
+        // Card
+        let card = document.createElement('div');
+        card.className = 'results-card';
+        let h2 = document.createElement('h2');
+        h2.textContent = 'Results';
+        card.appendChild(h2);
+        let flex = document.createElement('div');
+        flex.className = 'results-flex';
+        // Chart
+        let chartDiv = document.createElement('div');
+        chartDiv.className = 'chart-container';
+        let canvas = document.createElement('canvas');
+        canvas.id = 'eb2Chart';
+        canvas.height = 300;
+        chartDiv.appendChild(canvas);
+        flex.appendChild(chartDiv);
+        // Table
+        let tableDiv = document.createElement('div');
+        tableDiv.className = 'table-container';
+        let table = document.createElement('table');
+        let thead = document.createElement('thead');
+        thead.innerHTML = '<tr><th>Bulletin Date</th><th>EB2 Priority Date</th></tr>';
+        table.appendChild(thead);
+        let tbody = document.createElement('tbody');
+        for (let item of results) {
+            let tr = document.createElement('tr');
+            let td1 = document.createElement('td');
+            td1.textContent = item.bulletin_date;
+            let td2 = document.createElement('td');
+            if (item.eb2_date === 'C') {
+                td2.textContent = 'Current';
+            } else if (item.eb2_date === 'U' || item.eb2_date === 'Unavailable' || !item.eb2_date) {
+                td2.textContent = 'Unavailable';
+            } else {
+                td2.textContent = item.eb2_date;
+            }
+            tr.appendChild(td1);
+            tr.appendChild(td2);
+            tbody.appendChild(tr);
+        }
+        table.appendChild(tbody);
+        tableDiv.appendChild(table);
+        flex.appendChild(tableDiv);
+        card.appendChild(flex);
+        resultsDiv.appendChild(card);
+        // Chart.js
+        let dataPoints = results.map(r => {
+            let y = parsePriorityDate(r.eb2_date);
+            let x = r.bulletin_date;
+            return (y ? {x, y: y.getTime()} : null);
+        }).filter(Boolean);
+        if (dataPoints.length) {
+            let yValues = dataPoints.map(pt => pt.y);
+            let yMin = Math.min(...yValues);
+            let yMax = Math.max(...yValues);
+            new Chart(canvas.getContext('2d'), {
+                type: 'line',
+                data: {
+                    datasets: [{
+                        label: 'EB2 India Priority Date',
+                        data: dataPoints,
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37,99,235,0.08)',
+                        pointBackgroundColor: '#2563eb',
+                        pointRadius: 4,
+                        fill: true,
+                        tension: 0.2,
+                        parsing: {xAxisKey: 'x', yAxisKey: 'y'},
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let d = new Date(context.parsed.y);
+                                    return d.toLocaleDateString('en-US', {year:'numeric', month:'short', day:'2-digit'});
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'EB2 India Priority Date Progression',
+                            font: { size: 18 }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Bulletin Date' },
+                            type: 'category',
+                            ticks: {
+                                callback: function(value, index, ticks) {
+                                    const label = this.getLabelForValue(value);
+                                    if (label) {
+                                        const [month, year] = label.split(' ');
+                                        return month.slice(0,3) + ' ' + year.slice(-2);
+                                    }
+                                    return value;
+                                },
+                                font: { size: 10 }
+                            }
+                        },
+                        y: {
+                            title: { display: true, text: 'Priority Date' },
+                            type: 'time',
+                            time: { unit: 'month', tooltipFormat: 'MMM yyyy' },
+                            min: yMin,
+                            max: yMax,
+                            ticks: {
+                                callback: function(value) {
+                                    let d = new Date(value);
+                                    return d.toLocaleDateString('en-US', {year:'2-digit', month:'short'});
+                                },
+                                font: { size: 10 }
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            // No chartable data
+            let note = document.createElement('div');
+            note.style.marginTop = '1rem';
+            note.style.color = '#888';
+            note.textContent = 'No chart data available for the selected range (all dates are Current or Unavailable).';
+            chartDiv.appendChild(note);
+        }
+    }
+    // --- Form handler ---
+    document.addEventListener('DOMContentLoaded', () => {
+        populateSelects();
+        document.getElementById('dateForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const startMonth = +document.getElementById('start_month').value;
+            const startYear = +document.getElementById('start_year').value;
+            const endMonth = +document.getElementById('end_month').value;
+            const endYear = +document.getElementById('end_year').value;
+            const results = await fetchResults(startMonth, startYear, endMonth, endYear);
+            renderResults(results);
+        });
+        // Auto-submit on load for default range
+        document.getElementById('dateForm').dispatchEvent(new Event('submit'));
+    });
+    </script>
+</body>
+</html> 
