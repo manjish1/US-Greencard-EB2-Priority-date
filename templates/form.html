@@ -1,0 +1,50 @@
+<div class="card">
+    <h1>EB2 India Priority Dates Viewer</h1>
+    <form method="get">
+        <div class="form-section">
+            <div class="form-group">
+                <label for="start_month">Start Month:</label>
+                <div class="select-wrapper">
+                    <select id="start_month" name="start_month" required>
+                        {% for m in range(1, 13) %}
+                        <option value="{{ m }}" {% if m == start_month %}selected{% endif %}>{{ ["January","February","March","April","May","June","July","August","September","October","November","December"][m-1] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="start_year">Start Year:</label>
+                <div class="select-wrapper">
+                    <select id="start_year" name="start_year" required>
+                        {% for y in range(current_year, 1994, -1) %}
+                        <option value="{{ y }}" {% if y == start_year %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="form-section">
+            <div class="form-group">
+                <label for="end_month">End Month:</label>
+                <div class="select-wrapper">
+                    <select id="end_month" name="end_month" required>
+                        {% for m in range(1, 13) %}
+                        <option value="{{ m }}" {% if m == end_month %}selected{% endif %}>{{ ["January","February","March","April","May","June","July","August","September","October","November","December"][m-1] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="end_year">End Year:</label>
+                <div class="select-wrapper">
+                    <select id="end_year" name="end_year" required>
+                        {% for y in range(current_year, 1994, -1) %}
+                        <option value="{{ y }}" {% if y == end_year %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+        <input type="submit" value="Fetch Dates">
+    </form>
+</div> 

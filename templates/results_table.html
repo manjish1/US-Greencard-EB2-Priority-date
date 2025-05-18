@@ -1,0 +1,12 @@
+<table>
+    <tr>
+        <th>Bulletin Date</th>
+        <th>EB2 Priority Date</th>
+    </tr>
+    {% for item in results %}
+    <tr>
+        <td>{{ item.bulletin_date }}</td>
+        <td>{{ item.eb2_date }}</td>
+    </tr>
+    {% endfor %}
+</table> 

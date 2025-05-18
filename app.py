@@ -1,65 +1,55 @@
 from flask import Flask, render_template, request
-import requests
-from bs4 import BeautifulSoup
+from visa_scraper import fetch_eb2_india_dates
 from datetime import datetime
-import calendar
+import json
+import os
+import glob
 
 app = Flask(__name__)
 
-def fetch_eb2_india_dates(start_month, start_year, end_month, end_year):
-    results = []
-    start_date = datetime(int(start_year), int(start_month), 1)
-    end_date = datetime(int(end_year), int(end_month), 1)
+# Load bulletin cache at startup
+CACHE_DIR = "bulletins"
+bulletins = []
+if os.path.isdir(CACHE_DIR):
+    for fname in glob.glob(os.path.join(CACHE_DIR, "*.json")):
+        with open(fname, "r") as f:
+            try:
+                bulletins.append(json.load(f))
+            except Exception as e:
+                print(f"Error loading {fname}: {e}")
 
-    current = start_date
-    while current <= end_date:
-        month_name = calendar.month_name[current.month].lower()
-        url = f"https://travel.state.gov/content/travel/en/legal/visa-law0/visa-bulletin/{current.year}/visa-bulletin-for-{month_name}-{current.year}.html"
-        print(f"Fetching: {url}")
-        try:
-            resp = requests.get(url, timeout=10)
-            if resp.status_code != 200:
-                current = add_months(current, 1)
-                continue
-            soup = BeautifulSoup(resp.text, "html.parser")
-            tables = soup.find_all("table")
-            for table in tables:
-                rows = table.find_all("tr")
-                for row in rows:
-                    cells = [td.get_text(strip=True) for td in row.find_all(["td", "th"])]
-                    if len(cells) < 4:
-                        continue
-                    if "2nd" in cells[0].lower() or "eb2" in cells[0].lower():
-                        eb2_date = cells[3]
-                        results.append({
-                            "bulletin_date": current.strftime("%B %Y"),
-                            "eb2_date": eb2_date
-                        })
-                        break
-                if results and results[-1]["bulletin_date"] == current.strftime("%B %Y"):
-                    break
-        except Exception as e:
-            print(f"Error fetching {url}: {e}")
-        current = add_months(current, 1)
-
-    print("Scraped Results:", results)
-    return results
-
-def add_months(date_obj, months):
-    year = date_obj.year + (date_obj.month + months - 1) // 12
-    month = (date_obj.month + months - 1) % 12 + 1
-    return datetime(year, month, 1)
-
-@app.route("/", methods=["GET", "POST"])
+@app.route("/", methods=["GET"])
 def index():
     results = []
-    if request.method == "POST":
-        start_month = request.form.get("start_month")
-        start_year = request.form.get("start_year")
-        end_month = request.form.get("end_month")
-        end_year = request.form.get("end_year")
+    now = datetime.now()
+    # Defaults
+    default_end_month = now.month
+    default_end_year = now.year
+    default_start_month = now.month
+    default_start_year = now.year - 1
+    # Get from query or use defaults
+    start_month = request.args.get("start_month", str(default_start_month))
+    start_year = request.args.get("start_year", str(default_start_year))
+    end_month = request.args.get("end_month", str(default_end_month))
+    end_year = request.args.get("end_year", str(default_end_year))
+
+    # Use cache for the requested range
+    if bulletins:
+        def parse_bulletin_date_str(s):
+            return datetime.strptime(s, "%B %Y")
+        start_dt = datetime(int(start_year), int(start_month), 1)
+        end_dt = datetime(int(end_year), int(end_month), 1)
+        # Filter and sort
+        filtered = [r for r in bulletins if start_dt <= parse_bulletin_date_str(r["bulletin_date"]) <= end_dt]
+        filtered.sort(key=lambda r: parse_bulletin_date_str(r["bulletin_date"]))
+        results = filtered
+    else:
+        # Fallback: live scrape if cache is empty
         results = fetch_eb2_india_dates(start_month, start_year, end_month, end_year)
-    return render_template("index.html", results=results)
+
+    return render_template("index.html", results=results, current_year=now.year,
+                           start_month=int(start_month), start_year=int(start_year),
+                           end_month=int(end_month), end_year=int(end_year))
 
 if __name__ == "__main__":
     app.run(debug=True)
