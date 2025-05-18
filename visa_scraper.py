@@ -6,11 +6,16 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import sys
 import json
 import os
+import time
 
-def fetch_for_month(current):
+def fetch_for_month(current, max_retries=3, backoff_factor=2):
     """
     Fetch the EB2 India date for a specific month (datetime object).
     Returns a dict with 'bulletin_date' and 'eb2_date', or None if not found.
+    Retries on failure up to max_retries times with exponential backoff.
+    If a 404 is encountered, tries the alternate URL format (with or without '-for').
+    If the page is fetched but no India column is found, returns a result with eb2_date=None and a note.
+    Handles old bulletins where the header may be 'IN' instead of 'India'.
     """
     month_name = calendar.month_name[current.month].lower()
     # Fiscal year logic for URL path
@@ -18,39 +23,70 @@ def fetch_for_month(current):
         url_year = current.year + 1
     else:
         url_year = current.year
-    url = f"https://travel.state.gov/content/travel/en/legal/visa-law0/visa-bulletin/{url_year}/visa-bulletin-for-{month_name}-{current.year}.html"
-    print(f"Fetching: {url}")
-    try:
-        resp = requests.get(url, timeout=10)
-        if resp.status_code != 200:
-            return None
-        soup = BeautifulSoup(resp.text, "html.parser")
-        tables = soup.find_all("table")
-        for table in tables:
-            rows = table.find_all("tr")
-            if not rows or len(rows) < 2:
-                continue
-            header_cells = [th.get_text(strip=True).lower() for th in rows[0].find_all(["td", "th"])]
-            if not any("india" in h for h in header_cells):
-                continue
+    # Two possible URL formats
+    url_with_for = f"https://travel.state.gov/content/travel/en/legal/visa-law0/visa-bulletin/{url_year}/visa-bulletin-for-{month_name}-{current.year}.html"
+    url_without_for = f"https://travel.state.gov/content/travel/en/legal/visa-law0/visa-bulletin/{url_year}/visa-bulletin-{month_name}-{current.year}.html"
+    urls_to_try = [url_with_for, url_without_for]
+    attempt = 0
+    tried_alternate = False
+    while attempt < max_retries:
+        for url in urls_to_try:
+            print(f"Fetching: {url}")
             try:
-                india_idx = header_cells.index(next(h for h in header_cells if "india" in h))
-            except StopIteration:
-                continue
-            for row in rows[1:]:
-                cells = [td.get_text(strip=True) for td in row.find_all(["td", "th"])]
-                if len(cells) <= india_idx:
+                resp = requests.get(url, timeout=10)
+                if resp.status_code == 404 and not tried_alternate:
+                    # Try the alternate format if not already tried
+                    print(f"404 Not Found for {url}. Trying alternate URL format.")
+                    tried_alternate = True
                     continue
-                if "2nd" in cells[0].lower() or "eb2" in cells[0].lower():
-                    eb2_date = cells[india_idx]
+                if resp.status_code != 200:
+                    raise Exception(f"HTTP {resp.status_code}")
+                soup = BeautifulSoup(resp.text, "html.parser")
+                tables = soup.find_all("table")
+                found_india = False
+                for table in tables:
+                    rows = table.find_all("tr")
+                    if not rows or len(rows) < 2:
+                        continue
+                    header_cells = [th.get_text(strip=True).lower() for th in rows[0].find_all(["td", "th"])]
+                    # Find index for 'india' or 'in' (case-insensitive)
+                    india_indices = [i for i, h in enumerate(header_cells) if ("india" in h or h.strip() == "in")]
+                    if not india_indices:
+                        continue
+                    found_india = True
+                    india_idx = india_indices[0]
+                    for row in rows[1:]:
+                        cells = [td.get_text(strip=True) for td in row.find_all(["td", "th"])]
+                        if len(cells) <= india_idx:
+                            continue
+                        if "2nd" in cells[0].lower() or "eb2" in cells[0].lower():
+                            eb2_date = cells[india_idx]
+                            return {
+                                "bulletin_date": current.strftime("%B %Y"),
+                                "eb2_date": eb2_date
+                            }
+                # If we parsed tables but found no India column, return a result with note
+                if tables and not found_india:
                     return {
                         "bulletin_date": current.strftime("%B %Y"),
-                        "eb2_date": eb2_date
+                        "eb2_date": None,
+                        "note": "No India column"
                     }
-        return None
-    except Exception as e:
-        print(f"Error fetching {url}: {e}")
-        return None
+                # If no tables at all, treat as not found (could be a malformed or irrelevant page)
+                return None
+            except Exception as e:
+                attempt += 1
+                print(f"Error fetching {url} (attempt {attempt}/{max_retries}): {e}")
+                if attempt < max_retries:
+                    sleep_time = backoff_factor ** (attempt - 1)
+                    print(f"Retrying in {sleep_time} seconds...")
+                    time.sleep(sleep_time)
+                else:
+                    print(f"Failed to fetch {url} after {max_retries} attempts.")
+                    return None
+        # After trying both formats, break if alternate was already tried
+        if tried_alternate:
+            break
 
 def parse_bulletin_date(b):
     """
@@ -58,10 +94,11 @@ def parse_bulletin_date(b):
     """
     return datetime.strptime(b["bulletin_date"], "%B %Y")
 
-def fetch_eb2_india_dates(start_month, start_year, end_month, end_year):
+def fetch_eb2_india_dates(start_month, start_year, end_month, end_year, output_dir=None):
     """
     Scrape the US Visa Bulletin for EB2 India dates between the given start and end month/year.
     Returns a list of dicts with 'bulletin_date' and 'eb2_date'.
+    If output_dir is provided and is a directory, skips months that already have a cache file.
     """
     results = []
     start_date = datetime(int(start_year), int(start_month), 1)
@@ -70,6 +107,14 @@ def fetch_eb2_india_dates(start_month, start_year, end_month, end_year):
     months = []
     current = start_date
     while current <= end_date:
+        # If output_dir is set, skip if file exists
+        if output_dir and os.path.isdir(output_dir):
+            fname = f"{current.year:04d}-{current.month:02d}.json"
+            out_path = os.path.join(output_dir, fname)
+            if os.path.exists(out_path):
+                print(f"Skipping fetch for {fname}: already exists.")
+                current = add_months(current, 1)
+                continue
         months.append(current)
         current = add_months(current, 1)
     # Fetch in parallel
@@ -103,7 +148,7 @@ if __name__ == "__main__":
     parser.add_argument('--output', type=str, default=None, help='Output file (default: stdout)')
     args = parser.parse_args()
 
-    results = fetch_eb2_india_dates(args.start_month, args.start_year, args.end_month, args.end_year)
+    results = fetch_eb2_india_dates(args.start_month, args.start_year, args.end_month, args.end_year, output_dir=args.output if args.output and os.path.isdir(args.output) else None)
     # Pre-process: parse all dates to ISO format for easy loading
     for r in results:
         dt = None
@@ -123,7 +168,11 @@ if __name__ == "__main__":
                 try:
                     dt = datetime.strptime(r['bulletin_date'], '%B %Y')
                     fname = f"{dt.year:04d}-{dt.month:02d}.json"
-                    with open(os.path.join(args.output, fname), 'w') as f:
+                    out_path = os.path.join(args.output, fname)
+                    if os.path.exists(out_path):
+                        print(f"Skipping {fname}: already exists.")
+                        continue
+                    with open(out_path, 'w') as f:
                         json.dump(r, f, indent=2)
                 except Exception as e:
                     print(f"Error writing month file: {e}")
