@@ -1,3 +1,5 @@
+[![Build & Deploy](https://github.com/${{github.repository}}/actions/workflows/deploy.yml/badge.svg?branch=main)](https://github.com/${{github.repository}}/actions/workflows/deploy.yml)
+
 # 🇺🇸 EB2 Visa Bulletin Tracker (India)
 
 This is a Flask-based web application that scrapes and displays **EB2 India priority dates** from the U.S. Department of State's Visa Bulletin. It allows users to input a start and end month/year to track the EB2 priority date changes over time, and visualizes the results in both a table and an interactive chart.
