@@ -25,12 +25,21 @@ def fetch_for_month(current):
         tables = soup.find_all("table")
         for table in tables:
             rows = table.find_all("tr")
-            for row in rows:
+            if not rows or len(rows) < 2:
+                continue
+            header_cells = [th.get_text(strip=True).lower() for th in rows[0].find_all(["td", "th"])]
+            if not any("india" in h for h in header_cells):
+                continue
+            try:
+                india_idx = header_cells.index(next(h for h in header_cells if "india" in h))
+            except StopIteration:
+                continue
+            for row in rows[1:]:
                 cells = [td.get_text(strip=True) for td in row.find_all(["td", "th"])]
-                if len(cells) < 4:
+                if len(cells) <= india_idx:
                     continue
                 if "2nd" in cells[0].lower() or "eb2" in cells[0].lower():
-                    eb2_date = cells[3]
+                    eb2_date = cells[india_idx]
                     return {
                         "bulletin_date": current.strftime("%B %Y"),
                         "eb2_date": eb2_date

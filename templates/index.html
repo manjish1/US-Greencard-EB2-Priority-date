@@ -57,8 +57,13 @@
             margin-bottom: 0.4rem;
             font-weight: 500;
         }
+        .select-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
         select {
-            padding: 0.55rem 0.9rem;
+            padding: 0.55rem 2.1rem 0.55rem 0.9rem;
             border-radius: 8px;
             border: 1.2px solid #bfc9d1;
             background: #f7fafd;
@@ -70,10 +75,24 @@
             -moz-appearance: none;
             color: #22304a;
             box-shadow: 0 1px 2px rgba(44, 62, 80, 0.03);
+            width: 100%;
+            cursor: pointer;
         }
         select:focus {
             border: 1.2px solid #3b82f6;
             box-shadow: 0 0 0 2px #3b82f622;
+        }
+        .select-wrapper::after {
+            content: '';
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0.8em;
+            height: 0.5em;
+            pointer-events: none;
+            background: url('data:image/svg+xml;utf8,<svg fill="%234a5a6a" height="10" viewBox="0 0 20 10" width="20" xmlns="http://www.w3.org/2000/svg"><path d="M0 0l10 10 10-10z"/></svg>') no-repeat center/contain;
+            opacity: 0.7;
         }
         input[type="submit"] {
             margin-top: 0.5rem;
@@ -162,55 +181,63 @@
             <div class="form-section">
                 <div class="form-group">
                     <label for="start_month">Start Month:</label>
-                    <select id="start_month" name="start_month" required>
-                        <option value="1">January</option>
-                        <option value="2">February</option>
-                        <option value="3">March</option>
-                        <option value="4">April</option>
-                        <option value="5">May</option>
-                        <option value="6">June</option>
-                        <option value="7">July</option>
-                        <option value="8">August</option>
-                        <option value="9">September</option>
-                        <option value="10">October</option>
-                        <option value="11">November</option>
-                        <option value="12">December</option>
-                    </select>
+                    <div class="select-wrapper">
+                        <select id="start_month" name="start_month" required>
+                            <option value="1">January</option>
+                            <option value="2">February</option>
+                            <option value="3">March</option>
+                            <option value="4">April</option>
+                            <option value="5">May</option>
+                            <option value="6">June</option>
+                            <option value="7">July</option>
+                            <option value="8">August</option>
+                            <option value="9">September</option>
+                            <option value="10">October</option>
+                            <option value="11">November</option>
+                            <option value="12">December</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label for="start_year">Start Year:</label>
-                    <select id="start_year" name="start_year" required>
-                        {% for y in range(1995, current_year+1) %}
-                        <option value="{{ y }}">{{ y }}</option>
-                        {% endfor %}
-                    </select>
+                    <div class="select-wrapper">
+                        <select id="start_year" name="start_year" required>
+                            {% for y in range(current_year, 1994, -1) %}
+                            <option value="{{ y }}">{{ y }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                 </div>
             </div>
             <div class="form-section">
                 <div class="form-group">
                     <label for="end_month">End Month:</label>
-                    <select id="end_month" name="end_month" required>
-                        <option value="1">January</option>
-                        <option value="2">February</option>
-                        <option value="3">March</option>
-                        <option value="4">April</option>
-                        <option value="5">May</option>
-                        <option value="6">June</option>
-                        <option value="7">July</option>
-                        <option value="8">August</option>
-                        <option value="9">September</option>
-                        <option value="10">October</option>
-                        <option value="11">November</option>
-                        <option value="12">December</option>
-                    </select>
+                    <div class="select-wrapper">
+                        <select id="end_month" name="end_month" required>
+                            <option value="1">January</option>
+                            <option value="2">February</option>
+                            <option value="3">March</option>
+                            <option value="4">April</option>
+                            <option value="5">May</option>
+                            <option value="6">June</option>
+                            <option value="7">July</option>
+                            <option value="8">August</option>
+                            <option value="9">September</option>
+                            <option value="10">October</option>
+                            <option value="11">November</option>
+                            <option value="12">December</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label for="end_year">End Year:</label>
-                    <select id="end_year" name="end_year" required>
-                        {% for y in range(1995, current_year+1) %}
-                        <option value="{{ y }}">{{ y }}</option>
-                        {% endfor %}
-                    </select>
+                    <div class="select-wrapper">
+                        <select id="end_year" name="end_year" required>
+                            {% for y in range(current_year, 1994, -1) %}
+                            <option value="{{ y }}">{{ y }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                 </div>
             </div>
             <input type="submit" value="Fetch Dates">
